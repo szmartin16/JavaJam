@@ -26,6 +26,7 @@ public class MusicView extends JFrame {
     private JLabel durationLabel;
     private JLabel nowPlayingLabel;
     private JTextField searchField;
+    private JTextField clientCountField;
     private JButton profileButton;
     private JButton prevButton;
     private JButton nextButton;
@@ -201,12 +202,32 @@ public class MusicView extends JFrame {
         repeatButton = createStyledButton("icons/repeat.svg", buttonDark, textLight);
         jamButton = createStyledButton("icons/jam.svg", buttonDark, textLight);
 
+
+        JPanel clientIndicatorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        clientIndicatorPanel.setBackground(panelDark);
+
+        JLabel clientIconLabel = new JLabel();
+        clientIconLabel.setIcon(new com.formdev.flatlaf.extras.FlatSVGIcon("icons/eye.svg", 16, 16));
+        clientIconLabel.setToolTipText("Connected Jam Clients");
+
+        clientCountField = new JTextField("0", 2);
+        clientCountField.setEditable(false);
+        clientCountField.setFocusable(false);
+        clientCountField.setBackground(panelDark);
+        clientCountField.setBorder(null);
+        clientCountField.setHorizontalAlignment(JTextField.CENTER);
+        clientCountField.setToolTipText("Connected Jam Clients");
+
+        clientIndicatorPanel.add(clientCountField);
+        clientIndicatorPanel.add(clientIconLabel);
+
         buttonsPanel.add(shuffleButton);
         buttonsPanel.add(prevButton);
         buttonsPanel.add(playPauseButton);
         buttonsPanel.add(nextButton);
         buttonsPanel.add(repeatButton);
         buttonsPanel.add(jamButton);
+        buttonsPanel.add(clientIndicatorPanel);
 
         //Volume Panel
         JPanel volumePanel = new JPanel(
@@ -451,6 +472,8 @@ public class MusicView extends JFrame {
     public JLabel getDurationLabel() {
         return durationLabel;
     }
+
+    public JTextField getClientCountField() {return  clientCountField;}
 
 
     public void showMainView() {
