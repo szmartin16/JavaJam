@@ -41,6 +41,7 @@ public class MusicController {
     private CefClient cefClient;
     private CefBrowser cefBrowser;
     private CefMessageRouter messageRouter;
+    private boolean isCefInitialized = false;
     private boolean trackStarted = false;
 
     private volatile double currentVideoTime = 0;
@@ -155,6 +156,10 @@ public class MusicController {
 
 
     private void initCefPlayer() {
+        if (isCefInitialized) {
+            System.out.println("[CEF] Player already initialized. Skipping...");
+            return;
+        }
         Thread cefThread = new Thread(() -> {
             try {
                 CefAppBuilder builder = new CefAppBuilder();
@@ -175,6 +180,7 @@ public class MusicController {
                 );
 
                 cefApp = builder.build();
+                isCefInitialized = true;
 
                 cefClient = cefApp.createClient();
 
@@ -668,33 +674,40 @@ public class MusicController {
     }
 
     private void handleJamAction() {
-        String[] options = {"Host Session", "Join Session", "Cancel"};
-        int choice = JOptionPane.showOptionDialog(musicView, "Choose Jam Mode:", "Jam Session", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+        String[] options = {"Host Session", "Join with Code", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(
+                musicView,
+                "Choose Jam Mode:",
+                "Jam Session",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
 
         if (choice == 0) {
-            // HOST MODE
-            String portStr = JOptionPane.showInputDialog(musicView, "Enter port to host on:", "8888");
-            if (portStr != null && !portStr.trim().isEmpty()) {
-                try {
-                    int port = Integer.parseInt(portStr.trim());
-                    jamManager.startHosting(port);
+            String sessionId = jamManager.generateSessionId();
+            jamManager.startHosting(sessionId);
 
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(musicView, "Invalid port number.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
+            JTextArea textArea = new JTextArea("Hosting Session via Relay!\nYour Session Code: " + sessionId);
+            textArea.setEditable(false);
+            textArea.setOpaque(false);
+            textArea.setFocusable(true);
+            textArea.setLineWrap(true);
+            textArea.setWrapStyleWord(true);
+
+            JOptionPane.showMessageDialog(
+                    musicView,
+                    textArea,
+                    "Jam Host Active",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
         } else if (choice == 1) {
-            // CLIENT MODE
-            String input = JOptionPane.showInputDialog(musicView, "Enter Host IP:Port (e.g. 192.168.1.50:8888):", "127.0.0.1:8888");
-            if (input != null && input.contains(":")) {
-                String[] parts = input.split(":");
-                String ip = parts[0].trim();
-                try {
-                    int port = Integer.parseInt(parts[1].trim());
-                    jamManager.joinHost(ip, port);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(musicView, "Invalid IP or Port format.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+            String sessionId = JOptionPane.showInputDialog(musicView, "Enter Session Code: ");
+            if (sessionId != null && !sessionId.trim().isEmpty()) {
+                jamManager.joinHost(sessionId.trim());
             }
         }
     }

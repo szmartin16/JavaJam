@@ -314,10 +314,8 @@ public class MusicView extends JFrame {
 
                 SwingUtilities.invokeLater(() -> {
 
-                    // Request focus for the JFrame.
                     MusicView.this.requestFocus();
 
-                    // Then transfer focus to the search field.
                     searchField.requestFocus();
                     searchField.grabFocus();
 
