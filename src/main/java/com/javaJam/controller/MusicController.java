@@ -1,6 +1,7 @@
 package com.javaJam.controller;
 
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.javaJam.service.Globals;
 import com.javaJam.view.ProfileView;
 import com.javaJam.view.SettingsView;
 import com.javaJam.windows.WindowsTaskbarThumbnail;
@@ -35,12 +36,14 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+
 public class MusicController {
 
     private CefApp cefApp;
     private CefClient cefClient;
     private CefBrowser cefBrowser;
     private CefMessageRouter messageRouter;
+    private boolean isCefInitialized = false;
     private boolean trackStarted = false;
 
     private volatile double currentVideoTime = 0;
@@ -155,6 +158,10 @@ public class MusicController {
 
 
     private void initCefPlayer() {
+        if (isCefInitialized) {
+            System.out.println("[CEF] Player already initialized. Skipping...");
+            return;
+        }
         Thread cefThread = new Thread(() -> {
             try {
                 CefAppBuilder builder = new CefAppBuilder();
@@ -175,6 +182,7 @@ public class MusicController {
                 );
 
                 cefApp = builder.build();
+                isCefInitialized = true;
 
                 cefClient = cefApp.createClient();
 
@@ -294,9 +302,11 @@ public class MusicController {
                             if (currentUrl != null && currentUrl.contains("/player/")) {
                                 System.out.println("[JCEF] Player page load complete. Sending initial JS start command...");
 
+                                seekVideo(Globals.getCutoffFront());
                                 SwingUtilities.invokeLater(() -> {
                                     if (isPlaying) {
                                         executePlayerCommand("if(typeof playVideo === 'function') { playVideo(); }");
+
                                         if (taskbarThumbnail != null) {
                                             taskbarThumbnail.setPlaying();
                                         }
@@ -647,7 +657,8 @@ public class MusicController {
             String url = "http://localhost:"
                     + playerServerPort
                     + "/player/"
-                    + videoId;
+                    + videoId
+                    + "?cutoff=" + Globals.getCutoffFront();
 
             System.out.println("[JCEF] Initial loading: " + url);
 
@@ -658,43 +669,56 @@ public class MusicController {
 
             System.out.println("[JCEF] Switching video: " + videoId);
 
+            // Load video, apply cutoff, then start playback.
             executePlayerCommand(
-                    "window.loadNewVideo('" + videoId + "')"
+                    "window.loadNewVideo('" +
+                            videoId + "', " +
+                            Globals.getCutoffFront() +
+                            ");"
             );
             executePlayerCommand(
                     "window.playVideo()"
             );
+
+
         }
     }
 
     private void handleJamAction() {
-        String[] options = {"Host Session", "Join Session", "Cancel"};
-        int choice = JOptionPane.showOptionDialog(musicView, "Choose Jam Mode:", "Jam Session", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+        String[] options = {"Host Session", "Join with Code", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(
+                musicView,
+                "Choose Jam Mode:",
+                "Jam Session",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
 
         if (choice == 0) {
-            // HOST MODE
-            String portStr = JOptionPane.showInputDialog(musicView, "Enter port to host on:", "8888");
-            if (portStr != null && !portStr.trim().isEmpty()) {
-                try {
-                    int port = Integer.parseInt(portStr.trim());
-                    jamManager.startHosting(port);
+            String sessionId = jamManager.generateSessionId();
+            jamManager.startHosting(sessionId);
 
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(musicView, "Invalid port number.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
+            JTextArea textArea = new JTextArea("Hosting Session via Relay!\nYour Session Code: " + sessionId);
+            textArea.setEditable(false);
+            textArea.setOpaque(false);
+            textArea.setFocusable(true);
+            textArea.setLineWrap(true);
+            textArea.setWrapStyleWord(true);
+
+            JOptionPane.showMessageDialog(
+                    musicView,
+                    textArea,
+                    "Jam Host Active",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
         } else if (choice == 1) {
-            // CLIENT MODE
-            String input = JOptionPane.showInputDialog(musicView, "Enter Host IP:Port (e.g. 192.168.1.50:8888):", "127.0.0.1:8888");
-            if (input != null && input.contains(":")) {
-                String[] parts = input.split(":");
-                String ip = parts[0].trim();
-                try {
-                    int port = Integer.parseInt(parts[1].trim());
-                    jamManager.joinHost(ip, port);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(musicView, "Invalid IP or Port format.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+            String sessionId = JOptionPane.showInputDialog(musicView, "Enter Session Code: ");
+            if (sessionId != null && !sessionId.trim().isEmpty()) {
+                jamManager.joinHost(sessionId.trim());
             }
         }
     }
@@ -742,7 +766,7 @@ public class MusicController {
 
                 if (trackStarted &&
                         currentTime > 0 &&
-                        duration - currentTime <= 10 &&
+                        duration - currentTime <= Globals.getCutoffBack() &&
                         tracks != null &&
                         !tracks.isEmpty()) {
 
@@ -822,9 +846,9 @@ public class MusicController {
         trackStarted = false;
         isAdvancingTrack = false;
         isPlaying = true;
+
         cachedDuration = 0;
         currentVideoTime = 0;
-
         currentTrackName = track.getName();
 
         musicView.getSeekSlider().setValue(0);
@@ -836,7 +860,9 @@ public class MusicController {
         String videoId = extractVideoId(track.getUrl());
 
         if (videoId != null) {
+
             currentVideoId = videoId;
+
 
             loadVideoInApp(videoId);
             broadcastCurrentState();
@@ -940,7 +966,7 @@ public class MusicController {
 
     private void playNextTrack() {
         if (repeatEnabled){
-            seekVideo(1);
+            seekVideo(Globals.getCutoffFront());
             currentVideoTime = 1;
             isPlaying = true;
             trackStarted = true;

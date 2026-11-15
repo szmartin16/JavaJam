@@ -1,6 +1,7 @@
 package com.javaJam.view;
 
 import com.javaJam.controller.SettingsController;
+import com.javaJam.service.Globals;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,8 +12,11 @@ import static com.javaJam.service.Theme.*;
 public class SettingsView extends JPanel {
 
     private SettingsController settingsController;
-    private Runnable backAction;
     private JButton backButton;
+    private JTextField cutoffFrontField;
+    private JTextField cutoffBackField;
+    private JComboBox<String> videoBox;
+
 
     public SettingsView() {
         setLayout(new BorderLayout());
@@ -48,17 +52,21 @@ public class SettingsView extends JPanel {
         contentPanel.add(createSectionHeader("Playback & Video"));
         contentPanel.add(Box.createVerticalStrut(10));
 
-        JComboBox<String> videoBox = new JComboBox<>(new String[]{"1080p (HD)", "720p", "480p", "Off"});
+
+        videoBox = new JComboBox<>(new String[]{"Force Maximum", "1080p", "720p", "Off"});
+        videoBox.setSelectedItem(Globals.getQuality());
         styleComboBox(videoBox);
         contentPanel.add(createSettingRow("Video Quality", videoBox));
         contentPanel.add(Box.createVerticalStrut(15));
 
-        JTextField cutoffFrontField = new JTextField(String.valueOf(DEFAULT_CUTOFF_FRONT));
+
+        cutoffFrontField = new JTextField(String.valueOf(Globals.getCutoffFront()));
         styleTextField(cutoffFrontField);
         contentPanel.add(createSettingRow("Video Cutoff Front (sec)", cutoffFrontField));
         contentPanel.add(Box.createVerticalStrut(15));
 
-        JTextField cutoffBackField = new JTextField(String.valueOf(DEFAULT_CUTOFF_BACK));
+
+        cutoffBackField = new JTextField(String.valueOf(Globals.getCutoffBack()));
         styleTextField(cutoffBackField);
         contentPanel.add(createSettingRow("Video Cutoff Back (sec)", cutoffBackField));
         contentPanel.add(Box.createVerticalStrut(30));
@@ -96,7 +104,7 @@ public class SettingsView extends JPanel {
 
         JLabel label = new JLabel(labelText);
         label.setForeground(TEXT_LIGHT);
-        label.setPreferredSize(new Dimension(150, 30));
+        label.setPreferredSize(new Dimension(300, 30));
 
         row.add(label, BorderLayout.WEST);
         row.add(component, BorderLayout.CENTER);
@@ -130,4 +138,8 @@ public class SettingsView extends JPanel {
     {
         return backButton;
     }
+    public JTextField getCutoffFrontField() {return cutoffFrontField;}
+    public JTextField getCutoffBackField() {return cutoffBackField;}
+    public JComboBox<String> getVideoBox() {return videoBox;}
+
 }

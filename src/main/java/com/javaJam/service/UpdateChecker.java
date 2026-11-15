@@ -15,14 +15,13 @@ import static com.javaJam.service.Globals.VERSION_NUMBER;
 public class UpdateChecker {
 
     private static final String GITHUB_API_URL = "https://api.github.com/repos/szmartin16/JavaJam/releases";
-    private static final String CURRENT_VERSION = VERSION_NUMBER; // Update as needed
+    private static final String CURRENT_VERSION = VERSION_NUMBER;
 
     public static void checkForUpdates(Runnable onNoUpdate, Consumer<String> onUpdateAvailable) {
         Thread updateThread = new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newBuilder()
-                        .connectTimeout(Duration.ofSeconds(5))
-                        .build();
+            try (HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build()) {
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(GITHUB_API_URL))
