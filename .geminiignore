@@ -1,0 +1,13 @@
+target/
+.git/
+.github/
+.idea/
+.jcef-bundle/
+browser.html
+README.md
+youtube_test.html
+debug.log
+.gitignore
+qodana.yaml
+*.jar
+*.exe
