@@ -37,6 +37,9 @@
     window.repeatEnabled = false;
     window.pendingVideoId = 'VIDEO_ID';
     window.pendingCommands = [];
+    window.pendingSeekSeconds = 0;
+    window.pendingAutoplay = false;
+    window.waitingForInitialSeek = false;
 
     function debug(message) {
         console.log("[JS] " + message);
@@ -46,6 +49,11 @@
 
         if (!window.isPlayerReady()) {
             debug("Player not ready yet");
+            return;
+        }
+
+        if (window.waitingForInitialSeek) {
+            debug("Initial seek pending. Waiting before playback.");
             return;
         }
 
@@ -80,7 +88,7 @@
             videoId: window.pendingVideoId,
 
             playerVars: {
-                autoplay: 1,
+                autoplay: 0,
                 controls: 0,
                 disablekb: 1,
                 playsinline: 1,
@@ -90,6 +98,7 @@
 
             events: {
                 onReady: function(event) {
+
                     window.isReady = true;
 
                     debug("Player READY");
@@ -98,7 +107,9 @@
                         window.pendingCommands.shift()();
                     }
 
-                    window.startInitialPlayback();
+                    if (!window.waitingForInitialSeek) {
+                        window.startInitialPlayback();
+                    }
                 },
                 onStateChange: function(event) {
                     var states = {
@@ -136,6 +147,13 @@
 
                     if (event.data === YT.PlayerState.PAUSED) {
                         debug("Player paused");
+                    }
+
+                    if (event.data === YT.PlayerState.CUED) {
+
+                        debug("Video cued successfully");
+
+                        window.applyPendingSeek();
                     }
 
                     if (event.data === YT.PlayerState.ENDED &&
@@ -184,20 +202,60 @@
     //
     //VIDEO CONTROLS
     //
-    window.loadNewVideo = function(videoId) {
-
-        window.pendingVideoId = videoId;
+    window.loadNewVideo = function(videoId, startSeconds) {
+        window.pendingSeekSeconds = Math.max(0, Number(startSeconds) || 0);
 
         executeWhenReady(function() {
+            debug("Loading and playing video: " + videoId + " at cutoff: " + window.pendingSeekSeconds);
 
-            debug("Loading video: " + videoId);
 
             window.player.loadVideoById({
                 videoId: videoId,
-                startSeconds: 0
+                startSeconds: window.pendingSeekSeconds
             });
-
         });
+    };
+
+    window.applyPendingSeek = function() {
+
+        if (!window.waitingForInitialSeek) return;
+
+        if (!window.isPlayerReady()) return;
+
+        const state = window.player.getPlayerState();
+
+        if (state !== YT.PlayerState.CUED &&
+            state !== YT.PlayerState.PAUSED &&
+            state !== YT.PlayerState.PLAYING) {
+            return;
+        }
+
+        const duration = window.player.getDuration();
+
+        if (!duration || duration <= 0) {
+            debug("Waiting for valid duration...");
+            return;
+        }
+
+        const target = Math.min(
+            window.pendingSeekSeconds,
+            Math.max(0, duration - 0.5)
+        );
+
+        debug("Applying initial seek: " + target);
+
+        window.player.seekTo(target, true);
+
+        window.waitingForInitialSeek = false;
+
+        if (window.pendingAutoplay) {
+
+            window.pendingAutoplay = false;
+
+            debug("Starting playback after initial seek");
+
+            window.player.playVideo();
+        }
     };
 
     window.playVideo = function() {
@@ -230,7 +288,12 @@
     };
 
     setInterval(function() {
+
         if (!window.isPlayerReady()) return;
+
+        if (window.waitingForInitialSeek) {
+            window.applyPendingSeek();
+        }
 
         const current = window.player.getCurrentTime();
         const duration = window.player.getDuration();
@@ -240,10 +303,7 @@
         window.lastProgress.current = current;
         window.lastProgress.duration = duration;
 
-        if (typeof window.cefQuery !== "function") {
-            console.error("[JCEF] cefQuery is unavailable");
-            return;
-        }
+        if (typeof window.cefQuery !== "function") return;
 
         window.cefQuery({
             request: JSON.stringify({
@@ -251,17 +311,13 @@
                 current: current,
                 duration: duration
             }),
-
             persistent: false,
-
-            onSuccess: function(response) {
-                console.log("[JCEF] Progress received by Java");
-            },
-
+            onSuccess: function(response) {},
             onFailure: function(code, message) {
                 console.error("[JCEF] Query failed:", code, message);
             }
         });
+
     }, 500);
 
     //

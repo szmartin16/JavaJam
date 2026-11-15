@@ -1,6 +1,7 @@
 package com.javaJam.controller;
 
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.javaJam.service.Globals;
 import com.javaJam.view.ProfileView;
 import com.javaJam.view.SettingsView;
 import com.javaJam.windows.WindowsTaskbarThumbnail;
@@ -34,6 +35,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
 
 public class MusicController {
 
@@ -300,9 +302,11 @@ public class MusicController {
                             if (currentUrl != null && currentUrl.contains("/player/")) {
                                 System.out.println("[JCEF] Player page load complete. Sending initial JS start command...");
 
+                                seekVideo(Globals.getCutoffFront());
                                 SwingUtilities.invokeLater(() -> {
                                     if (isPlaying) {
                                         executePlayerCommand("if(typeof playVideo === 'function') { playVideo(); }");
+
                                         if (taskbarThumbnail != null) {
                                             taskbarThumbnail.setPlaying();
                                         }
@@ -653,7 +657,8 @@ public class MusicController {
             String url = "http://localhost:"
                     + playerServerPort
                     + "/player/"
-                    + videoId;
+                    + videoId
+                    + "?cutoff=" + Globals.getCutoffFront();
 
             System.out.println("[JCEF] Initial loading: " + url);
 
@@ -664,12 +669,18 @@ public class MusicController {
 
             System.out.println("[JCEF] Switching video: " + videoId);
 
+            // Load video, apply cutoff, then start playback.
             executePlayerCommand(
-                    "window.loadNewVideo('" + videoId + "')"
+                    "window.loadNewVideo('" +
+                            videoId + "', " +
+                            Globals.getCutoffFront() +
+                            ");"
             );
             executePlayerCommand(
                     "window.playVideo()"
             );
+
+
         }
     }
 
@@ -755,7 +766,7 @@ public class MusicController {
 
                 if (trackStarted &&
                         currentTime > 0 &&
-                        duration - currentTime <= 10 &&
+                        duration - currentTime <= Globals.getCutoffBack() &&
                         tracks != null &&
                         !tracks.isEmpty()) {
 
@@ -835,9 +846,9 @@ public class MusicController {
         trackStarted = false;
         isAdvancingTrack = false;
         isPlaying = true;
+
         cachedDuration = 0;
         currentVideoTime = 0;
-
         currentTrackName = track.getName();
 
         musicView.getSeekSlider().setValue(0);
@@ -849,7 +860,9 @@ public class MusicController {
         String videoId = extractVideoId(track.getUrl());
 
         if (videoId != null) {
+
             currentVideoId = videoId;
+
 
             loadVideoInApp(videoId);
             broadcastCurrentState();
@@ -953,7 +966,7 @@ public class MusicController {
 
     private void playNextTrack() {
         if (repeatEnabled){
-            seekVideo(1);
+            seekVideo(Globals.getCutoffFront());
             currentVideoTime = 1;
             isPlaying = true;
             trackStarted = true;
