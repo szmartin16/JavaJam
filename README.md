@@ -64,17 +64,15 @@ JavaJam lets you share your listening experience with friends.
 1. Launch JavaJam.
 2. Click the **Jam** button.
 3. Select **Host Session**.
-4. Enter a port number.
-5. Share your IP address and port with friends.
+4. Share the party code.
 
-⚠️ For public network RadminVPN or Hamachi are recommended ⚠️
 
 ### Joining a Session
 
 1. Launch JavaJam.
 2. Click the **Jam** button.
 3. Select **Join Session**.
-4. Enter the host's IP address and port.
+4. Enter the party code.
 5. Connect and enjoy the music together!
 
 ## 📸 Screenshots
