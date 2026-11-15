@@ -56,12 +56,15 @@ public class MusicView extends JFrame {
         mainContentPanel = new JPanel(new BorderLayout());
         mainContentPanel.setBackground(bgDark);
 
-        //TOP NAV
+        //
+        // TOP NAV
+        //
         JPanel topNavPanel = new JPanel(new BorderLayout());
         topNavPanel.setBackground(panelDark);
         topNavPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
-        JPanel leftNav = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        //Left Search
+        JPanel leftNav = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         leftNav.setBackground(panelDark);
 
         JLabel searchLabel = new JLabel("Search:");
@@ -92,21 +95,44 @@ public class MusicView extends JFrame {
         leftNav.add(searchField);
         topNavPanel.add(leftNav, BorderLayout.WEST);
 
-        //Profile menu
+        //Center Clock
+        JPanel centerNav = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
+        centerNav.setBackground(panelDark);
+
+        JLabel clockLabel = new JLabel();
+        clockLabel.setForeground(textLight);
+        clockLabel.setFont(clockLabel.getFont().deriveFont(Font.PLAIN, 18f));
+
+        Timer clockTimer = new Timer(1000, e -> {
+            String timeStr = java.time.LocalTime.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern("hh:mm:ss")
+            );
+            clockLabel.setText(timeStr);
+        });
+        clockTimer.setInitialDelay(0);
+        clockTimer.start();
+
+        centerNav.add(clockLabel);
+        topNavPanel.add(centerNav, BorderLayout.CENTER);
+
+        //Right menu
         JPanel rightNav = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         rightNav.setBackground(panelDark);
 
-        profileButton = createStyledButton("icons/profile.svg", buttonDark, textLight);
+        profileButton = createStyledButton("icons/profile.svg", bgDark, textLight);
         profileMenu = new JPopupMenu();
         profileMenu.add(profileMenuItem);
         profileMenu.add(settingsMenuItem);
 
         rightNav.add(profileButton);
         topNavPanel.add(rightNav, BorderLayout.EAST);
+
         add(topNavPanel, BorderLayout.NORTH);
         mainContentPanel.add(topNavPanel, BorderLayout.NORTH);
 
-        //List view n Web player
+        //
+        // LIST VIEW & WEB PLAYER
+        //
         listModel = new DefaultListModel<>();
         musicListUI = new JList<>(listModel);
         musicListUI.setBackground(bgDark);
@@ -118,22 +144,12 @@ public class MusicView extends JFrame {
         musicListUI.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(
-                    JList<?> list,
-                    Object value,
-                    int index,
-                    boolean isSelected,
-                    boolean cellHasFocus) {
-
-                super.getListCellRendererComponent(
-                        list, value, index, isSelected, cellHasFocus
-                );
-
+                    JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (value instanceof Music) {
                     setText("   " + ((Music) value).getName());
                 }
-
                 setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-
                 return this;
             }
         });
@@ -155,7 +171,9 @@ public class MusicView extends JFrame {
         add(splitPane, BorderLayout.CENTER);
         mainContentPanel.add(splitPane, BorderLayout.CENTER);
 
-        //BOTTOM MUSIC PLAYER
+        //
+        // BOTTOM MUSIC PLAYER
+        //
         JPanel bottomBar = new JPanel(new BorderLayout(10, 5));
         bottomBar.setBackground(panelDark);
         bottomBar.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
@@ -163,6 +181,8 @@ public class MusicView extends JFrame {
         nowPlayingLabel = new JLabel("Nothing playing");
         nowPlayingLabel.setForeground(textLight);
         nowPlayingLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        nowPlayingLabel.setFont(nowPlayingLabel.getFont().deriveFont(Font.BOLD, 16f));
+
 
         bottomBar.add(nowPlayingLabel, BorderLayout.NORTH);
 
@@ -189,10 +209,8 @@ public class MusicView extends JFrame {
 
         controlsPanel.add(seekPanel, BorderLayout.NORTH);
 
-        //Buttons Panel
-        JPanel buttonsPanel = new JPanel(
-                new FlowLayout(FlowLayout.CENTER, 6, 5)
-        );
+        // Buttons Panel
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 5));
         buttonsPanel.setBackground(panelDark);
 
         shuffleButton = createStyledButton("icons/shuffle.svg", buttonDark, textLight);
@@ -201,7 +219,6 @@ public class MusicView extends JFrame {
         nextButton = createStyledButton("icons/next.svg", buttonDark, textLight);
         repeatButton = createStyledButton("icons/repeat.svg", buttonDark, textLight);
         jamButton = createStyledButton("icons/jam.svg", buttonDark, textLight);
-
 
         JPanel clientIndicatorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         clientIndicatorPanel.setBackground(panelDark);
@@ -229,10 +246,8 @@ public class MusicView extends JFrame {
         buttonsPanel.add(jamButton);
         buttonsPanel.add(clientIndicatorPanel);
 
-        //Volume Panel
-        JPanel volumePanel = new JPanel(
-                new FlowLayout(FlowLayout.CENTER, 16, 8)
-        );
+        // Volume Panel
+        JPanel volumePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 8));
         volumePanel.setBackground(panelDark);
 
         JLabel volumeLabel = new JLabel(new FlatSVGIcon("icons/volume.svg", 18, 18));
@@ -240,34 +255,21 @@ public class MusicView extends JFrame {
 
         volumeSlider = new JSlider(0, 100, 50);
         volumeSlider.setBackground(panelDark);
+        volumeSlider.setForeground(accentColor);
         volumeSlider.setPreferredSize(new Dimension(120, 25));
 
         volumePanel.add(volumeLabel);
         volumePanel.add(volumeSlider);
 
-        //Clock Panel
-        JPanel clockPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 20));
-        clockPanel.setBackground(panelDark);
-        clockPanel.setPreferredSize(volumePanel.getPreferredSize());
+        //
+        JPanel leftSpacer = new JPanel();
+        leftSpacer.setBackground(panelDark);
+        leftSpacer.setPreferredSize(volumePanel.getPreferredSize());
 
-        JLabel clockLabel = new JLabel();
-        clockLabel.setForeground(textLight);
-        clockLabel.setFont(clockLabel.getFont().deriveFont(Font.PLAIN, 20f));
-        clockPanel.add(clockLabel);
-
-
-        Timer clockTimer = new Timer(1000, e -> {
-            String timeStr = java.time.LocalTime.now().format(
-                    java.time.format.DateTimeFormatter.ofPattern("hh:mm:ss")
-            );
-            clockLabel.setText(timeStr);
-        });
-        clockTimer.setInitialDelay(0);
-        clockTimer.start();
-
+        //Controls Layout
         JPanel lowerControlsPanel = new JPanel(new BorderLayout());
         lowerControlsPanel.setBackground(panelDark);
-        lowerControlsPanel.add(clockPanel, BorderLayout.WEST);
+        lowerControlsPanel.add(leftSpacer, BorderLayout.WEST);
         lowerControlsPanel.add(buttonsPanel, BorderLayout.CENTER);
         lowerControlsPanel.add(volumePanel, BorderLayout.EAST);
 
