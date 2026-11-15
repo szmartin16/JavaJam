@@ -1,4 +1,4 @@
-package model;
+package com.javaJam.model;
 
 public class Music {
     public static int counter=1;

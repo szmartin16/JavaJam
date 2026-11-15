@@ -29,18 +29,39 @@
 </head>
 <body>
 
-<div id="player"></div>
+<div id="player" referrerpolicy="strict-origin-when-cross-origin"></div>
 
 <script>
     window.player = null;
     window.isReady = false;
     window.repeatEnabled = false;
-    window.pendingVideoId = 'Mmw-PpWhKFg';
+    window.pendingVideoId = 'VIDEO_ID';
     window.pendingCommands = [];
+    window.pendingSeekSeconds = 0;
+    window.pendingAutoplay = false;
+    window.waitingForInitialSeek = false;
 
     function debug(message) {
         console.log("[JS] " + message);
     }
+
+    window.startInitialPlayback = function() {
+
+        if (!window.isPlayerReady()) {
+            debug("Player not ready yet");
+            return;
+        }
+
+        if (window.waitingForInitialSeek) {
+            debug("Initial seek pending. Waiting before playback.");
+            return;
+        }
+
+        debug("Starting initial playback");
+
+        window.player.mute();
+        window.player.playVideo();
+    };
 
     //
     //PLAYER READY CHECK
@@ -67,22 +88,27 @@
             videoId: window.pendingVideoId,
 
             playerVars: {
-                autoplay: 1,
+                autoplay: 0,
                 controls: 0,
                 disablekb: 1,
                 playsinline: 1,
                 enablejsapi: 1,
-                //origin: 'ORIGIN'
+                origin: '__PLAYER_ORIGIN__'
             },
 
             events: {
                 onReady: function(event) {
+
                     window.isReady = true;
 
                     debug("Player READY");
 
                     while (window.pendingCommands.length > 0) {
                         window.pendingCommands.shift()();
+                    }
+
+                    if (!window.waitingForInitialSeek) {
+                        window.startInitialPlayback();
                     }
                 },
                 onStateChange: function(event) {
@@ -102,12 +128,32 @@
                     }
 
                     if (event.data === YT.PlayerState.PLAYING) {
-                        debug("Playback resumed at: " +
-                            window.player.getCurrentTime());
+
+                        debug("Playback started");
+
+                        window.player.unMute();
+
+                        window.cefQuery({
+                            request: JSON.stringify({
+                                type: "playing"
+                            }),
+                            persistent: false,
+                            onSuccess: function(response) {},
+                            onFailure: function(code, message) {
+                                console.error("[JCEF]", message);
+                            }
+                        });
                     }
 
                     if (event.data === YT.PlayerState.PAUSED) {
                         debug("Player paused");
+                    }
+
+                    if (event.data === YT.PlayerState.CUED) {
+
+                        debug("Video cued successfully");
+
+                        window.applyPendingSeek();
                     }
 
                     if (event.data === YT.PlayerState.ENDED &&
@@ -118,7 +164,24 @@
                     }
                 },
                 onError: function(event) {
-                    console.error("[ERROR] YouTube error:", event.data);
+
+                    const errors = {
+                        2: "Invalid video ID or parameter",
+                        5: "HTML5 player error",
+                        100: "Video unavailable or private",
+                        101: "Embedding disabled by video owner",
+                        150: "Embedding disabled by video owner",
+                        153: "Missing HTTP Referer or client identification"
+                    };
+
+                    console.error(
+                        "[YOUTUBE ERROR]",
+                        event.data,
+                        errors[event.data] || "Unknown error"
+                    );
+
+                    console.log("[PLAYER URL]", window.location.href);
+                    console.log("[PLAYER ORIGIN]", window.location.origin);
                 }
             }
         });
@@ -139,21 +202,60 @@
     //
     //VIDEO CONTROLS
     //
-    window.loadNewVideo = function(videoId) {
+    window.loadNewVideo = function(videoId, startSeconds) {
+        window.pendingSeekSeconds = Math.max(0, Number(startSeconds) || 0);
 
-        if (!window.isPlayerReady()) {
-            window.pendingVideoId = videoId;
+        executeWhenReady(function() {
+            debug("Loading and playing video: " + videoId + " at cutoff: " + window.pendingSeekSeconds);
+
+
+            window.player.loadVideoById({
+                videoId: videoId,
+                startSeconds: window.pendingSeekSeconds
+            });
+        });
+    };
+
+    window.applyPendingSeek = function() {
+
+        if (!window.waitingForInitialSeek) return;
+
+        if (!window.isPlayerReady()) return;
+
+        const state = window.player.getPlayerState();
+
+        if (state !== YT.PlayerState.CUED &&
+            state !== YT.PlayerState.PAUSED &&
+            state !== YT.PlayerState.PLAYING) {
             return;
         }
 
-        window.pendingVideoId = videoId;
+        const duration = window.player.getDuration();
 
-        debug("Loading video: " + videoId);
+        if (!duration || duration <= 0) {
+            debug("Waiting for valid duration...");
+            return;
+        }
 
-        window.player.loadVideoById({
-            videoId: videoId,
-            startSeconds: 0
-        });
+        const target = Math.min(
+            window.pendingSeekSeconds,
+            Math.max(0, duration - 0.5)
+        );
+
+        debug("Applying initial seek: " + target);
+
+        window.player.seekTo(target, true);
+
+        window.waitingForInitialSeek = false;
+
+        if (window.pendingAutoplay) {
+
+            window.pendingAutoplay = false;
+
+            debug("Starting playback after initial seek");
+
+            window.player.playVideo();
+        }
     };
 
     window.playVideo = function() {
@@ -186,7 +288,12 @@
     };
 
     setInterval(function() {
+
         if (!window.isPlayerReady()) return;
+
+        if (window.waitingForInitialSeek) {
+            window.applyPendingSeek();
+        }
 
         const current = window.player.getCurrentTime();
         const duration = window.player.getDuration();
@@ -196,10 +303,7 @@
         window.lastProgress.current = current;
         window.lastProgress.duration = duration;
 
-        if (typeof window.cefQuery !== "function") {
-            console.error("[JCEF] cefQuery is unavailable");
-            return;
-        }
+        if (typeof window.cefQuery !== "function") return;
 
         window.cefQuery({
             request: JSON.stringify({
@@ -207,17 +311,13 @@
                 current: current,
                 duration: duration
             }),
-
             persistent: false,
-
-            onSuccess: function(response) {
-                console.log("[JCEF] Progress received by Java");
-            },
-
+            onSuccess: function(response) {},
             onFailure: function(code, message) {
                 console.error("[JCEF] Query failed:", code, message);
             }
         });
+
     }, 500);
 
     //
@@ -283,4 +383,3 @@
 </script>
 </body>
 </html>
-""";

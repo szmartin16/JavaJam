@@ -1,5 +1,12 @@
 # 🎵 JavaJam
 
+
+<div align="center">
+<img width="1280" height="640" alt="banner" src="https://github.com/user-attachments/assets/09805f0d-e348-4b79-a117-c2a8ca0d832d" />
+<sub>Banner Img</sub>
+</div>
+
+
 ### Good music is better together.
 
 JavaJam is a Java desktop music player that combines YouTube playback with shared listening sessions. Discover music, play your favorite tracks, and listen alongside your friends.
@@ -64,32 +71,32 @@ JavaJam lets you share your listening experience with friends.
 1. Launch JavaJam.
 2. Click the **Jam** button.
 3. Select **Host Session**.
-4. Enter a port number.
-5. Share your IP address and port with friends.
+4. Share the party code.
 
-⚠️ For public network RadminVPN or Hamachi are recommended ⚠️
 
 ### Joining a Session
 
 1. Launch JavaJam.
 2. Click the **Jam** button.
 3. Select **Join Session**.
-4. Enter the host's IP address and port.
+4. Enter the party code.
 5. Connect and enjoy the music together!
 
 ## 📸 Screenshots
 <div align="center">
 
-  <img width="100%" alt="First screenshot" src="https://github.com/user-attachments/assets/ed4fe3ee-169b-43ed-8c1a-68005194cb60" />
-  
-  <sub>UI and application preview</sub>
-
-  <br /><br />
 
   <img width="100%" alt="Second screenshot" src="https://github.com/user-attachments/assets/3baea2a5-92ee-49e2-b6ac-559e45897774" />
   
-  <sub>Primitive launching UI</sub>
+  <sub>Primitive launching UI (v0.2.0)</sub>
 
+  <br /><br />
+  
+  <img width="1181" height="785" alt="image" src="https://github.com/user-attachments/assets/3b0a0e8b-4adf-427c-ba56-cff23cf40b83" />
+
+
+  <sub>New version UI preview (v0.3.0)</sub>
+    
 </div>
 
 ## 🗺️ Roadmap
@@ -100,7 +107,7 @@ JavaJam lets you share your listening experience with friends.
 - [x] Playback controls
 - [x] Shuffle and repeat
 - [x] Listen-together functionality
-- [ ] Improved playback synchronization
+- [x] Improved playback synchronization
 - [ ] Custom playlists
 - [ ] User profiles
 - [ ] Friends system
